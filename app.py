@@ -10,10 +10,14 @@ DATABASE_URL = os.environ.get('DATABASE_URL')
 IS_POSTGRES = DATABASE_URL is not None
 
 if IS_POSTGRES:
-    import psycopg2
-    from psycopg2.extras import RealDictCursor
-    if DATABASE_URL.startswith("postgres://"):
-        DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+    try:
+        import psycopg2
+        from psycopg2.extras import RealDictCursor
+        if DATABASE_URL.startswith("postgres://"):
+            DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+    except ImportError:
+        IS_POSTGRES = False
+        DATABASE = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'database.db')
 else:
     DATABASE = os.path.join(os.path.abspath(os.path.dirname(__file__)), 'database.db')
 
