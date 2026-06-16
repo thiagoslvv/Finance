@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>FinanceFlow - Controle de Gastos Pessoais</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <!-- Style CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar / Header Area -->
+        <aside class="sidebar">
+            <div class="logo-area">
+                <div class="logo-icon">
+                    <i data-lucide="wallet"></i>
+                </div>
+                <h2>Finance<span>Flow</span></h2>
+            </div>
+            
+            <nav class="nav-menu">
+                <a href="#" class="nav-item active" id="btn-nav-dashboard">
+                    <i data-lucide="layout-dashboard"></i>
+                    <span>Dashboard</span>
+                </a>
+                <a href="#" class="nav-item" id="btn-nav-transactions">
+                    <i data-lucide="list-ordered"></i>
+                    <span>Transações</span>
+                </a>
+            </nav>
+
+            <div class="quick-summary-card">
+                <p>Gastos do Mês</p>
+                <h3 id="sidebar-month-total">R$ 0,00</h3>
+                <div class="progress-bar-container">
+                    <div class="progress-bar-fill" id="sidebar-budget-progress" style="width: 0%"></div>
+                </div>
+                <span id="sidebar-budget-label">Limite não definido</span>
+            </div>
+            
+            <div class="sidebar-footer">
+                <p>&copy; 2026 FinanceFlow</p>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <header class="top-header">
+                <div class="header-title">
+                    <h1>Olá! Bem-vindo de volta</h1>
+                    <p>Controle suas finanças de forma simples e visual.</p>
+                </div>
+                <div class="header-actions">
+                    <button class="btn btn-primary btn-add-expense-trigger" id="btn-add-expense">
+                        <i data-lucide="plus"></i> Novo Gasto
+                    </button>
+                </div>
+            </header>
+
+            <!-- Dashboard Grid -->
+            <div class="dashboard-grid">
+                <!-- Summary Cards Row -->
+                <section class="summary-cards">
+                    <div class="card card-summary total-spent">
+                        <div class="card-icon" style="background: rgba(244, 63, 94, 0.15); color: var(--color-expense);">
+                            <i data-lucide="trending-down"></i>
+                        </div>
+                        <div class="card-info">
+                            <span>Total Gasto (Mês)</span>
+                            <h2 id="total-spent-month">R$ 0,00</h2>
+                            <p id="total-spent-count">0 transações cadastradas</p>
+                        </div>
+                    </div>
+
+                    <div class="card card-summary limit-card">
+                        <div class="card-icon" style="background: rgba(99, 102, 241, 0.15); color: var(--color-primary);">
+                            <i data-lucide="target"></i>
+                        </div>
+                        <div class="card-info">
+                            <span>Meta de Gastos</span>
+                            <h2 id="current-limit-val">R$ 1.500,00</h2>
+                            <p id="limit-status">Defina seu teto mensal</p>
+                        </div>
+                        <button class="btn-icon-small" id="btn-edit-limit" title="Editar Meta">
+                            <i data-lucide="edit-3"></i>
+                        </button>
+                    </div>
+
+                    <div class="card card-summary average-spent">
+                        <div class="card-icon" style="background: rgba(20, 184, 166, 0.15); color: var(--color-accent);">
+                            <i data-lucide="dollar-sign"></i>
+                        </div>
+                        <div class="card-info">
+                            <span>Gasto Médio p/ Item</span>
+                            <h2 id="avg-expense-val">R$ 0,00</h2>
+                            <p>No período atual</p>
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Visualization Area -->
+                <section class="visualization-section">
+                    <div class="card chart-card">
+                        <div class="card-header">
+                            <h3>Distribuição por Categoria</h3>
+                            <i data-lucide="pie-chart"></i>
+                        </div>
+                        <div class="chart-container">
+                            <canvas id="categoryChart"></canvas>
+                            <div id="no-chart-data" class="empty-state-container hidden">
+                                <i data-lucide="pie-chart" class="empty-icon"></i>
+                                <p>Sem dados para gerar gráfico</p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card budget-limits-card">
+                        <div class="card-header">
+                            <h3>Status por Categoria</h3>
+                            <i data-lucide="sliders"></i>
+                        </div>
+                        <div class="category-budgets-list" id="category-budgets-list">
+                            <!-- Category items will be generated dynamically -->
+                        </div>
+                    </div>
+                </section>
+
+                <!-- Transactions Section -->
+                <section class="transactions-section">
+                    <div class="card table-card">
+                        <div class="card-header flex-header">
+                            <div class="header-left">
+                                <h3>Histórico de Gastos</h3>
+                                <span class="badge" id="transactions-count">0</span>
+                            </div>
+                            <div class="header-right">
+                                <div class="search-box">
+                                    <i data-lucide="search"></i>
+                                    <input type="text" id="search-input" placeholder="Buscar gasto...">
+                                </div>
+                                <div class="filter-dropdown-container">
+                                    <select id="category-filter">
+                                        <option value="all">Todas Categorias</option>
+                                        <option value="Alimentação">Alimentação</option>
+                                        <option value="Transporte">Transporte</option>
+                                        <option value="Moradia">Moradia</option>
+                                        <option value="Saúde">Saúde</option>
+                                        <option value="Lazer">Lazer</option>
+                                        <option value="Educação">Educação</option>
+                                        <option value="Outros">Outros</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="table-container">
+                            <table class="expenses-table" id="expenses-table">
+                                <thead>
+                                    <tr>
+                                        <th>Descrição</th>
+                                        <th>Categoria</th>
+                                        <th>Data</th>
+                                        <th>Valor</th>
+                                        <th class="text-right">Ações</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="expenses-list">
+                                    <!-- Dynamic rows from JS -->
+                                </tbody>
+                            </table>
+                            <div id="empty-state" class="empty-state-container hidden">
+                                <i data-lucide="wallet" class="empty-icon"></i>
+                                <h4>Nenhum gasto encontrado</h4>
+                                <p>Cadastre sua primeira despesa clicando no botão abaixo.</p>
+                                <button class="btn btn-primary btn-add-expense-trigger">
+                                    <i data-lucide="plus"></i> Adicionar Gasto
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <!-- MODAL: ADD / EDIT EXPENSE -->
+    <div class="modal-backdrop" id="expense-modal">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 id="modal-title">Adicionar Novo Gasto</h3>
+                <button class="btn-close" id="btn-close-modal">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+            <form id="expense-form">
+                <input type="hidden" id="expense-id">
+                
+                <div class="form-group">
+                    <label for="expense-name">Nome / Descrição</label>
+                    <input type="text" id="expense-name" required placeholder="Ex: Supermercado, Gasolina...">
+                </div>
+
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="expense-value">Valor (R$)</label>
+                        <input type="number" id="expense-value" required step="0.01" min="0.01" placeholder="0,00">
+                    </div>
+                    <div class="form-group">
+                        <label for="expense-category">Categoria</label>
+                        <select id="expense-category" required>
+                            <option value="" disabled selected>Selecione...</option>
+                            <option value="Alimentação">Alimentação</option>
+                            <option value="Transporte">Transporte</option>
+                            <option value="Moradia">Moradia</option>
+                            <option value="Saúde">Saúde</option>
+                            <option value="Lazer">Lazer</option>
+                            <option value="Educação">Educação</option>
+                            <option value="Outros">Outros</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="expense-date">Data</label>
+                    <input type="date" id="expense-date" required>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline" id="btn-cancel-expense">Cancelar</button>
+                    <button type="submit" class="btn btn-primary" id="btn-save-expense">
+                        <i data-lucide="check"></i> Salvar Gasto
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- MODAL: EDIT MONTHLY LIMIT -->
+    <div class="modal-backdrop" id="limit-modal">
+        <div class="modal modal-small">
+            <div class="modal-header">
+                <h3>Definir Meta Mensal</h3>
+                <button class="btn-close" id="btn-close-limit-modal">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+            <form id="limit-form">
+                <div class="form-group">
+                    <label for="monthly-limit-input">Meta de Gastos (R$)</label>
+                    <input type="number" id="monthly-limit-input" required step="1" min="1" placeholder="1500">
+                    <small class="helper-text">Insira o teto máximo de gastos que você planeja para este mês.</small>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-outline" id="btn-cancel-limit">Cancelar</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i data-lucide="check"></i> Confirmar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- TOAST NOTIFICATION CONTAINER -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <!-- Custom Script JS -->
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>
